@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
 	     }
 	     else /* write webpage information to web */
 	    	 write(fd_client,webpage,sizeof(webpage) -1);
+	     wait(NULL);
 	     close(fd_client);
 	     printf("closeing..\n");
 	     exit(0);
