@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
-
+#include<netinet/ether.h>
 #define MATCH_MAX 40960
 char match_string[MATCH_MAX][100];  // Calculate how much match ip (string form)
 int match_cnt[MATCH_MAX]; // Calculate how much match ip count corresponding to 'matching_string'
@@ -60,13 +60,15 @@ int main(int argc, char *argv[]) {
 /* ethernet headers are always exactly 14 bytes [1] */
 #define SIZE_ETHERNET 14
 /* Ethernet addresses are 6 bytes */
-#define ETHER_ADDR_LEN	6
+//#define ETHER_ADDR_LEN	6
 
 /* Ethernet header */
 struct sniff_ethernet {
         u_char  ether_dhost[ETHER_ADDR_LEN];    /* destination host address */
         u_char  ether_shost[ETHER_ADDR_LEN];    /* source host address */
         u_short ether_type;                     /* IP? ARP? RARP? etc */
+	const struct ether_addr src;
+	const struct ether_addr dst;
 };
 
 /* IP header */
@@ -118,25 +120,41 @@ void got_packet(u_char* param, const struct pcap_pkthdr* header, const u_char* d
     const struct sniff_ethernet *ethernet;  /* The ethernet header [1] */
 	const struct sniff_ip *ip;              /* The IP header */
 	const struct sniff_tcp *tcp;            /* The TCP header */
-
+        ethernet=(struct sniff_ethernet*)(data+SIZE_ETHERNET);
     //  IP
 	ip = (struct sniff_ip*)(data + SIZE_ETHERNET);
     // TCP	
     int size_ip = IP_HL(ip)*4;
     tcp = (struct sniff_tcp*)(data + SIZE_ETHERNET + size_ip);
 
+    //  print time
+    struct tm* ltime;
+    char timestr[30];
+    ltime = localtime(&header->ts.tv_sec);
+    strftime(timestr, sizeof(timestr), "%Y/%m/%d %H:%M:%S", ltime);
+    printf("[%s.%.6d]  ", timestr, (int)header->ts.tv_usec);
+    
+    printf("MAC:%s -----> %s\t",ether_ntoa(&ethernet->src),ether_ntoa(&ethernet->dst));
+
+	//printf ("[length: %d]\n" ,header->len);
 	switch(ip->ip_p) {
 		case IPPROTO_TCP:
 			printf("TCP\t");
+			printf("TCP src_port:%d\t",ntohs(tcp->th_sport));
+			printf("TCP dst_port:%d\t",ntohs(tcp->th_dport));
 			break;
 		case IPPROTO_UDP:
 			printf("UDP\t");
+			printf("UDP src_port:%d\t",ntohs(tcp->th_sport));
+			printf("UDP dst_port:%d\t",ntohs(tcp->th_dport));
 			break;
 		case IPPROTO_ICMP:
 			printf("ICMP\t");
 			break;
 		case IPPROTO_IP:
 			printf("IP\t");
+    			printf("%s.%d ----> ", inet_ntoa(ip->ip_src),ntohs(tcp->th_sport));
+			printf("%s.%d\t", inet_ntoa(ip->ip_dst),ntohs(tcp->th_dport));
 			break;
 		case 89:
 			printf("OSPF\t");
@@ -148,23 +166,10 @@ void got_packet(u_char* param, const struct pcap_pkthdr* header, const u_char* d
 			printf("NARP\t");
 			break;
 		default:
-			printf("IP\t");
+			printf("unknwon\t");
 			break;
-		
 	}
-
-    //  print time
-    struct tm* ltime;
-    char timestr[30];
-    ltime = localtime(&header->ts.tv_sec);
-    strftime(timestr, sizeof(timestr), "%Y/%m/%d %H:%M:%S", ltime);
-    printf("[%s.%.6d]  ", timestr, (int)header->ts.tv_usec);
-
-
-    printf("%s.%d ----> ", inet_ntoa(ip->ip_src),ntohs(tcp->th_sport));
-	printf("%s.%d\t", inet_ntoa(ip->ip_dst),ntohs(tcp->th_dport));
 	printf ("[length: %d]\n" ,header->len);
-    	
     ///// Calculate how much match ip count corresponding to 'matching_string' /////
     
     if(idx == MATCH_MAX){
