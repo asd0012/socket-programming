@@ -1,4 +1,4 @@
-hw01:hw01.c
-	gcc -g hw01.c -o hw01
+hw03:hw03.c
+	gcc -g hw03.c -o hw03 -lpcap
 clean:
-	rm hw01
+	rm hw03
