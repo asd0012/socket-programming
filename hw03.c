@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     pcap_loop(handle,0, got_packet, NULL);
 
     for(int i=0; i<idx; i++){
-        printf("IP_address %stimes: %d\n",match_string[i], match_cnt[i]);
+        printf("IP_address %s\ntimes: %d\n",match_string[i], match_cnt[i]);
     }
 
     return 0;
@@ -164,7 +164,7 @@ void got_packet(u_char* param, const struct pcap_pkthdr* header, const u_char* d
     printf("%s.%d ----> ", inet_ntoa(ip->ip_src),ntohs(tcp->th_sport));
 	printf("%s.%d\t", inet_ntoa(ip->ip_dst),ntohs(tcp->th_dport));
 	printf ("[length: %d]\n" ,header->len);
-	
+    	
     ///// Calculate how much match ip count corresponding to 'matching_string' /////
     
     if(idx == MATCH_MAX){
@@ -174,8 +174,10 @@ void got_packet(u_char* param, const struct pcap_pkthdr* header, const u_char* d
     char tmp[100];
     int flag = 0;
     memset(tmp, 0, 100);
-    sprintf(tmp, "%s -> %s\n", inet_ntoa(ip->ip_src), inet_ntoa(ip->ip_dst));
-
+    
+    sprintf(tmp, "%s -> ", inet_ntoa(ip->ip_src));
+    strcat(tmp,inet_ntoa(ip->ip_dst));
+    
     for (int i = 0; i < idx; i++)
     {
         if(strcmp(match_string[i], tmp) == 0){
